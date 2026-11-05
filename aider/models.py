@@ -182,43 +182,62 @@ class ModelInfoManager:
             self.openrouter_manager.set_verify_ssl(verify_ssl)
 
     def _load_cache(self):
-        if self._cache_loaded:
-            return
-
-        try:
-            self.cache_dir.mkdir(parents=True, exist_ok=True)
-            if self.cache_file.exists():
-                cache_age = time.time() - self.cache_file.stat().st_mtime
-                if cache_age < self.CACHE_TTL:
-                    try:
-                        self.content = json.loads(self.cache_file.read_text())
-                    except json.JSONDecodeError:
-                        # If the cache file is corrupted, treat it as missing
-                        self.content = None
-        except OSError:
-            pass
-
+        # Disable remote download and disk caching of model metadata. Avoid the outbound
+        # HTTP request to GitHub for model_prices_and_context_window.json by setting
+        # self.content directly to an empty dictionary in
+        # ModelInfoManager._update_cache(). Additionally, bypass disk I/O in
+        # _load_cache() so Aider can initialize cleanly in offline or isolated container
+        # environments without touching
+        # ~/.aider/caches.
+        # https://github.com/Aider-AI/aider/issues/4812
+        self.content = {}
         self._cache_loaded = True
+        # if self._cache_loaded:
+        #     return
+        # 
+        # try:
+        #     self.cache_dir.mkdir(parents=True, exist_ok=True)
+        #     if self.cache_file.exists():
+        #         cache_age = time.time() - self.cache_file.stat().st_mtime
+        #         if cache_age < self.CACHE_TTL:
+        #             try:
+        #                 self.content = json.loads(self.cache_file.read_text())
+        #             except json.JSONDecodeError:
+        #                 # If the cache file is corrupted, treat it as missing
+        #                 self.content = None
+        # except OSError:
+        #     pass
+        # 
+        # self._cache_loaded = True
 
     def _update_cache(self):
-        try:
-            import requests
-
-            # Respect the --no-verify-ssl switch
-            response = requests.get(self.MODEL_INFO_URL, timeout=5, verify=self.verify_ssl)
-            if response.status_code == 200:
-                self.content = response.json()
-                try:
-                    self.cache_file.write_text(json.dumps(self.content, indent=4))
-                except OSError:
-                    pass
-        except Exception as ex:
-            print(str(ex))
-            try:
-                # Save empty dict to cache file on failure
-                self.cache_file.write_text("{}")
-            except OSError:
-                pass
+        # Disable remote download and disk caching of model metadata. Avoid the outbound
+        # HTTP request to GitHub for model_prices_and_context_window.json by setting
+        # self.content directly to an empty dictionary in
+        # ModelInfoManager._update_cache(). Additionally, bypass disk I/O in
+        # _load_cache() so Aider can initialize cleanly in offline or isolated container
+        # environments without touching
+        # ~/.aider/caches.
+        # https://github.com/Aider-AI/aider/issues/4812
+        self.content = {}
+        # try:
+        #     import requests
+        # 
+        #     # Respect the --no-verify-ssl switch
+        #     response = requests.get(self.MODEL_INFO_URL, timeout=5, verify=self.verify_ssl)
+        #     if response.status_code == 200:
+        #         self.content = response.json()
+        #         try:
+        #             self.cache_file.write_text(json.dumps(self.content, indent=4))
+        #         except OSError:
+        #             pass
+        # except Exception as ex:
+        #     print(str(ex))
+        #     try:
+        #         # Save empty dict to cache file on failure
+        #         self.cache_file.write_text("{}")
+        #     except OSError:
+        #         pass
 
     def get_model_from_cached_json_db(self, model):
         data = self.local_model_metadata.get(model)
