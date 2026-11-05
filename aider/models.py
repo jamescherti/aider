@@ -268,16 +268,19 @@ class ModelInfoManager:
     def get_model_info(self, model):
         cached_info = self.get_model_from_cached_json_db(model)
 
-        litellm_info = None
-        if litellm._lazy_module or not cached_info:
-            try:
-                litellm_info = litellm.get_model_info(model)
-            except Exception as ex:
-                if "model_prices_and_context_window.json" not in str(ex):
-                    print(str(ex))
-
-        if litellm_info:
-            return litellm_info
+        # Bypass remote model info lookups through litellm.get_model_info when local
+        # cache resolution returns empty. This stops outbound network requests to
+        # raw.githubusercontent.com in offline and network-isolated environments.
+        # litellm_info = None
+        # if litellm._lazy_module or not cached_info:
+        #     try:
+        #         litellm_info = litellm.get_model_info(model)
+        #     except Exception as ex:
+        #         if "model_prices_and_context_window.json" not in str(ex):
+        #             print(str(ex))
+        # 
+        # if litellm_info:
+        #     return litellm_info
 
         if not cached_info and model.startswith("openrouter/"):
             # First try using the locally cached OpenRouter model database
