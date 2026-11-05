@@ -36,16 +36,21 @@ FROM base AS aider-full
 
 ENV AIDER_DOCKER_IMAGE=paulgauthier/aider-full
 
+# Pre-install heavy static dependencies so Docker caches this layer
+RUN /venv/bin/python -m pip install --upgrade --no-cache-dir pip && \
+    /venv/bin/python -m pip install --no-cache-dir playwright boto3 \
+       --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Install playwright browsers BEFORE copying source code (caches the ~150MB+ download)
+RUN /venv/bin/python -m playwright install --with-deps chromium
+
+# Copy source code
 COPY . /tmp/aider
 
-# Install dependencies as root
-RUN /venv/bin/python -m pip install --upgrade --no-cache-dir pip && \
-    /venv/bin/python -m pip install --no-cache-dir /tmp/aider[help,browser,playwright] boto3 \
+# Install Aider (will resolve remaining dependencies quickly)
+RUN /venv/bin/python -m pip install --no-cache-dir /tmp/aider[help,browser,playwright] \
        --extra-index-url https://download.pytorch.org/whl/cpu && \
     rm -rf /tmp/aider
-
-# Install playwright browsers
-RUN /venv/bin/python -m playwright install --with-deps chromium
 
 # Fix site-packages permissions
 RUN find /venv/lib/python3.12/site-packages \( -type d -exec chmod a+rwx {} + \) -o \( -type f -exec chmod a+rw {} + \)
@@ -60,16 +65,21 @@ FROM base AS aider
 
 ENV AIDER_DOCKER_IMAGE=paulgauthier/aider
 
+# Pre-install heavy static dependencies so Docker caches this layer
+RUN /venv/bin/python -m pip install --upgrade --no-cache-dir pip && \
+    /venv/bin/python -m pip install --no-cache-dir playwright boto3 google-cloud-aiplatform \
+       --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Install playwright browsers BEFORE copying source code (caches the ~150MB+ download)
+RUN /venv/bin/python -m playwright install --with-deps chromium
+
+# Copy source code
 COPY . /tmp/aider
 
-# Install dependencies as root
-RUN /venv/bin/python -m pip install --upgrade --no-cache-dir pip && \
-    /venv/bin/python -m pip install --no-cache-dir /tmp/aider[playwright] boto3 google-cloud-aiplatform \
+# Install Aider (will resolve remaining dependencies quickly)
+RUN /venv/bin/python -m pip install --no-cache-dir /tmp/aider[playwright] \
        --extra-index-url https://download.pytorch.org/whl/cpu && \
     rm -rf /tmp/aider
-
-# Install playwright browsers
-RUN /venv/bin/python -m playwright install --with-deps chromium
 
 # Fix site-packages permissions
 RUN find /venv/lib/python3.12/site-packages \( -type d -exec chmod a+rwx {} + \) -o \( -type f -exec chmod a+rw {} + \)
